@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" href="icon-192.png" type="image/png">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flap Wheels Warehouse Inventory</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+  <link rel="manifest" href="manifest.json">
+  <script>
+    // Register the service worker for offline support
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("service-worker.js")
+          .then(reg => console.log("Service Worker registered:", reg))
+          .catch(err => console.log("Service Worker error:", err));
+      });
+    }
+  </script>
+  <style>
+    body { padding: 1rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: center; }
+    th { background: #f0f0f0; }
+    nav a { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <nav class="container-fluid">
+    <ul>
+      <li><strong>Flap Wheels Inventory</strong></li>
+    </ul>
+    <ul>
+      <li><a onclick="showSection('dashboard')">Dashboard</a></li>
+      <li><a onclick="showSection('reports')">Reports</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <!-- Dashboard -->
+    <div id="dashboard">
+      <section>
+        <hgroup>
+          <h2>Warehouse Inventory</h2>
+          <h3>Track Flap Wheels stock locations</h3>
+        </hgroup>
+
+        <form id="addItemForm" class="grid">
+          <input type="hidden" id="editIndex">
+          <input type="text" id="itemName" placeholder="Flap Wheels Size" required>
+          <input type="text" id="location" placeholder="Location" required>
+          <input type="number" id="quantity" placeholder="Quantity" required>
+          <button type="submit">Save Item</button>
+          <button type="button" id="cancelEdit" style="display:none;" onclick="cancelEdit()">Cancel</button>
+        </form>
+
+        <h3>Current Stock</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Size</th>
+              <th>Location</th>
+              <th>Quantity</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="inventoryTable"></tbody>
+        </table>
+      </section>
+    </div>
+
+    <!-- Reports -->
+    <div id="reports" style="display:none;">
+      <section>
+        <hgroup>
+          <h2>Reports</h2>
+          <h3>Summary of warehouse inventory</h3>
+        </hgroup>
+        <table>
+          <thead>
+            <tr>
+              <th>Size</th>
+              <th>Location</th>
+              <th>Quantity</th>
+            </tr>
+          </thead>
+          <tbody id="reportTable"></tbody>
+        </table>
+      </section>
+    </div>
+  </main>
+
+  <footer class="container">
+    <small>
+      <a href="#">ASCEND METALS LLC.</a> • <a href="#">Support</a>
+    </small>
+  </footer>
+
+  <script>
+    const form = document.getElementById("addItemForm");
+    const tableBody = document.getElementById("inventoryTable");
+    const reportBody = document.getElementById("reportTable");
+    let inventory = JSON.parse(localStorage.getItem("inventory")) || [];
+
+    function renderInventory() {
+      tableBody.innerHTML = "";
+      inventory.forEach((item, index) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${item.name}</td>
+          <td>${item.location}</td>
+          <td>${item.quantity}</td>
+          <td>
+            <button onclick="editItem(${index})">Edit</button>
+            <button onclick="deleteItem(${index})">Delete</button>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+      renderReports();
+    }
+
+    function renderReports() {
+      reportBody.innerHTML = "";
+      inventory.forEach(item => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${item.name}</td>
+          <td>${item.location}</td>
+          <td>${item.quantity}</td>
+        `;
+        reportBody.appendChild(row);
+      });
+    }
+
+    function saveInventory() {
+      localStorage.setItem("inventory", JSON.stringify(inventory));
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = document.getElementById("itemName").value.trim();
+      const location = document.getElementById("location").value.trim();
+      const quantity = parseInt(document.getElementById("quantity").value);
+      const editIndex = document.getElementById("editIndex").value;
+
+      if (editIndex !== "") {
+        inventory[editIndex] = { name, location, quantity };
+        document.getElementById("editIndex").value = "";
+        document.getElementById("cancelEdit").style.display = "none";
+      } else {
+        inventory.push({ name, location, quantity });
+      }
+
+      saveInventory();
+      renderInventory();
+      form.reset();
+    });
+
+    function editItem(index) {
+      const item = inventory[index];
+      document.getElementById("itemName").value = item.name;
+      document.getElementById("location").value = item.location;
+      document.getElementById("quantity").value = item.quantity;
+      document.getElementById("editIndex").value = index;
+      document.getElementById("cancelEdit").style.display = "inline-block";
+    }
+
+    function cancelEdit() {
+      form.reset();
+      document.getElementById("editIndex").value = "";
+      document.getElementById("cancelEdit").style.display = "none";
+    }
+
+    function deleteItem(index) {
+      inventory.splice(index, 1);
+      saveInventory();
+      renderInventory();
+    }
+
+    function showSection(sectionId) {
+      document.getElementById("dashboard").style.display = "none";
+      document.getElementById("reports").style.display = "none";
+      document.getElementById(sectionId).style.display = "block";
+    }
+
+    renderInventory();
+  </script>
+</body>
+</html>
